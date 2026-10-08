@@ -1,0 +1,76 @@
+services:
+  # Base de Datos MySQL 8.0
+  db:
+    image: mysql:8.0
+    container_name: nextgen_mysql
+    restart: always
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+    networks:
+      default:
+        aliases:
+          - nextgen_mysql
+          - db
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD:-NextGen2026*}
+      MYSQL_DATABASE: ${DB_NAME:-nextgen_gd_db}
+    ports:
+      # Rango dinámico anti-XAMPP: 3307 a 3309 en el host mapeado al 3306 interno.
+      # Si 3307 está ocupado por otro servicio, Docker selecciona automáticamente 3308 o 3309.
+      - "${DB_PORT_EXTERNAL:-3307-3309}:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./database/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${DB_PASSWORD:-NextGen2026*}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # Backend FastAPI (Python 3.11)
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: nextgen_backend
+    restart: always
+    environment:
+      # Conexión interna aislada vía red bridge de Docker (no colisiona con el host ni con XAMPP)
+      DATABASE_URL: mysql+pymysql://${DB_USER:-root}:${DB_PASSWORD:-NextGen2026*}@${DB_HOST_INTERNAL:-nextgen_mysql}:3306/${DB_NAME:-nextgen_gd_db}?charset=utf8mb4
+      DB_HOST: ${DB_HOST_INTERNAL:-nextgen_mysql}
+      DB_PORT: 3306
+      DB_NAME: ${DB_NAME:-nextgen_gd_db}
+      DB_USER: ${DB_USER:-root}
+      DB_PASSWORD: ${DB_PASSWORD:-NextGen2026*}
+      SECRET_KEY: ${SECRET_KEY:-nextgen_jwt_secret_super_segura_2026}
+      BACKEND_PORT: 8000
+    ports:
+      - "${BACKEND_PORT:-8000}:8000"
+    volumes:
+      - ./backend:/app
+      - uploads_data:/app/uploads
+    depends_on:
+      db:
+        condition: service_healthy
+
+  # Frontend React (Vite)
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: nextgen_frontend
+    restart: always
+    environment:
+      FRONTEND_PORT: ${FRONTEND_PORT:-3000}
+      PORT: ${FRONTEND_PORT:-3000}
+      VITE_API_URL: ${VITE_API_URL:-http://localhost:${BACKEND_PORT:-8000}}
+    ports:
+      - "${FRONTEND_PORT:-3000}:${FRONTEND_PORT:-3000}"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    depends_on:
+      - backend
+
+volumes:
+  mysql_data:
+  uploads_data:

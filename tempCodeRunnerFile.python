@@ -1,0 +1,59 @@
+def pedir_cadena():
+    while True:
+        cadena = input("Ingrese la cadena de caracteres: ").strip()
+        if not cadena:
+            print(" -> La cadena no puede estar vacia. Intente de nuevo.")
+        elif not cadena.isalpha():
+            print(" -> La cadena solo debe contener letras (sin espacios ni numeros).")
+        else:
+            return cadena
+
+
+def ordenar_lexicograficamente(cadena):
+    # Convierte la cadena a lista en mayusculas
+    letras = list(cadena.upper())
+
+    # Insertion Sort (Ordenamiento por Insercion)
+    for i in range(1, len(letras)):
+        actual = letras[i]
+        j = i - 1
+        while j >= 0 and letras[j] > actual:
+            letras[j + 1] = letras[j]
+            j -= 1
+        letras[j + 1] = actual
+
+    return "".join(letras)
+
+
+def resolver_lexicografico():
+    print("============================================================")
+    print("                       LEXICOGRAFICO                        ")
+    print("============================================================")
+    print("=== EJERCICIO LEXICOGRAFICO ===\n")
+
+    cadena = pedir_cadena()
+    resultado = ordenar_lexicograficamente(cadena)
+
+    print("\n================= RESPUESTA AL EJERCICIO =================")
+    print(f"Cadena ingresada                  : {cadena}")
+    print(f"Cadena ordenada lexicograficamente: {resultado}")
+    print("==========================================================")
+
+
+def preguntar_si_continuar():
+    while True:
+        respuesta = input("\nDesea ingresar otra cadena? (S/N): ").strip().upper()
+        if respuesta in ("S", "SI"):
+            return True
+        if respuesta in ("N", "NO"):
+            return False
+        print(" -> Respuesta invalida. Escriba S (si) o N (no).")
+
+
+if __name__ == "__main__":
+    while True:
+        resolver_lexicografico()
+        if not preguntar_si_continuar():
+            print("\nPrograma finalizado.")
+            break
+        print()
